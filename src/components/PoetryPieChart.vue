@@ -1,8 +1,8 @@
 <script>
 import * as d3 from 'd3'
 // 处理数据，获取每年的诗词数量总和
-let poetryList;
-// let yearPoetryNum=[['init',75],['test',25]];
+
+// let topTen=[['init',75],['test',25]];
 // d3.json('src/assets/libai/libai_merge_emotion.json',res => {
 //     poetryList = res
 //     console.log(poetryList)
@@ -11,59 +11,33 @@ let poetryList;
 
 // poetryList = getPoetryList()
 export default {
+    props:{
+        yearPoetryNum:{
+            type:Array,
+            required:true
+        }
+    },
+    emits:['changeYear'],
     data() {
         return {
-            yearPoetryNum: []
+            topTen:[]
         }
     },
     mounted() {
-        const _this = this
-        const p = new Promise(async function (resolve, reject) {
-            try {
-                const res = await d3.json('src/assets/libai/libai_merge_emotion.json')
-                resolve(res)
-            } catch (error) {
-                reject(error)
-            }
-        })
-            .then(value => {
-                // 数据处理
-                let yearPoetryCount = {} // 按年份统计诗词数量，属性值为年份
-                let poetrySum = 0 // 诗词总量
-                let dataArr = [] // 将yearPoetryCount转化为数组
-                value.forEach(element => {
-                    // 将element中的time属性值作为属性名添加到对象中
-                    if (yearPoetryCount.hasOwnProperty(element.time)) {
-                        yearPoetryCount[element.time]++
-                    } else {
-                        yearPoetryCount[element.time] = 1
-                    }
-                    poetrySum++
-                });
-                // 遍历yearPoetryCount每个属性
-                Object.keys(yearPoetryCount).forEach(key => {
-                    let arr = []
-                    if (yearPoetryCount[key] > 10) {// 剔除诗词数量为1的年份
-                        if (key === '') {
-                            // arr['未知'] = yearPoetryCount[key]
-                            arr.push('未知', yearPoetryCount[key])
-                        }
-                        else {
-                            // arr[key] = yearPoetryCount[key]
-                            arr.push(key, yearPoetryCount[key])
-                        }
-                        dataArr.push(arr)
-                    }
-                })
-                // console.log(dataArr)
-                // 对dataArr按照数量降序排列
-                dataArr.sort((a,b) => b[1]-a[1])
-                // 取出前10
-                this.yearPoetryNum = dataArr.slice(0,10)
-                _this.drawPieChart()
-            })
-            .catch(reason => { console.log('error', reason) })
-
+        // 对参数进行排序
+        // let dataArrOrder = this.yearPoetryNum
+        // dataArrOrder.sort((a,b) => b[1]-a[1])
+        // this.topTen = dataArrOrder.slice(0,10)
+        // this.drawPieChart()
+        
+    },
+    beforeUpdate(){
+        // 对参数进行排序
+        let dataArrOrder = this.yearPoetryNum
+        dataArrOrder.sort((a,b) => b[1]-a[1])
+        this.topTen = dataArrOrder.slice(0,10)
+        this.drawPieChart()
+        console.log('piechart beforupdata executing~')
     },
     methods: {
         // 弧形动画，鼠标移入，扇形放大，鼠标移出，扇形恢复
@@ -82,27 +56,29 @@ export default {
             }
         },
         drawPieChart() {
+            const _this = this
             // 0.创建饼布局 分别设置排序方式 绑定一个计算扇形区值的函数 处理数据为饼图数据
             // sort(null) 创建布局时，默认按照从小到大，设置为null则按照给定数组顺序
             const pie = d3.pie().sort(null).value(function (d) {
                 return d[1]// ?
             })
-            const pieData = pie(this.yearPoetryNum)
+            const pieData = pie(this.topTen)
             console.log(pieData)
 
             // 1.创建SVG
             const width = document.getElementById('pie').offsetWidth
             const height = document.getElementById('pie').offsetHeight
             // console.log(height,width)
+            const edge = width > height ? height : width// 做成正方形
             const svg = d3.select('#pie')
                 .append('svg')
-                .attr('width', width)
-                .attr('height', height)
+                .attr('width', edge)
+                .attr('height', edge)
                 .style('background-color','#fff')
 
             // 2.创建新的弧度生成器，设置内外部半径
             const innerRadius = 0
-            const outerRadius = width / 4
+            const outerRadius = edge / 4
             const arc = d3.arc().outerRadius(outerRadius).innerRadius(innerRadius)
 
             // 3.创建分组并绑定数据
@@ -110,7 +86,7 @@ export default {
                 .data(pieData)
                 .enter()
                 .append('g')
-                .attr('transform', 'translate(' + width / 2 + ',' + height / 2 + ')')
+                .attr('transform', 'translate(' + edge / 2 + ',' + edge / 2 + ')')
             
             // 4.调用内置颜色序列 添加交互 添加动画
             const colors = d3.schemeCategory10
@@ -118,9 +94,20 @@ export default {
                 .attr('fill', function (data, index) {
                     return colors[index]
                 })
+                .attr('class','pie_1')
                 .attr('d', data => arc(data))// 设置path标签'd'属性,值为弧度生成器arc处理后的数据
                 .on('mouseover',this.arcTween(outerRadius,20))
                 .on('mouseout',this.arcTween(outerRadius,0))
+                .on('click',function(e,d){
+                        // console.log(e,d)
+                        _this.$emit('changeYear',d.data['0'])// 发射点击事件
+                        // 删除其他的选中类 pie_1_s
+                        d3.selectAll('.pie_1').attr('class','pie_1')
+                        // 为当前点击的path添加类 pie_1_s
+                        // console.log(this)
+                        d3.select(this).attr('class','pie_1 pie_1_s')
+                    }
+                )
                 .transition()
                 .duration(1500)
                 .attrTween('d', d => {// 对d属性使用给定的插值器
@@ -162,9 +149,14 @@ export default {
 
 </template>
 
-<style scoped>
+<style>
 .pie {
-    width: 30%;
-    height: 100%;
+    /* flex: none; */
+    width: 25%;
+    height: 50%;
+}
+.pie_1_s{
+    stroke: #000;
+    stroke-width: 3;
 }
 </style>
