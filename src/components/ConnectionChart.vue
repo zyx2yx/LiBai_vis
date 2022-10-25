@@ -10,7 +10,7 @@
         ,
         props:{
             selectedYear:{
-                type:String,
+                type:[String,Number],
                 required:true,
             }
         },
@@ -23,7 +23,7 @@
             // 获取数据并更新state
             this.getLifeExpByYear()
                 .then(async data => {
-                    if(data === '年份未知') this.currentDate={} 
+                    if(data === 0) this.currentDate={} 
                     else this.currentDate = data
                 })
                 .catch(e => {
@@ -47,7 +47,7 @@
             selectedYear(){
                 this.getLifeExpByYear()
                     .then(async data => {
-                        if(data === '年份未知') this.currentDate={} 
+                        if(data === 0) this.currentDate={} 
                         else this.currentDate = data
                     })
                     .catch(e => {
@@ -58,8 +58,8 @@
         ,
         methods:{
             async getLifeExpByYear(){
-                if(this.selectedYear === '未知'){
-                    return Promise.resolve('年份未知')
+                if(this.selectedYear === 0){
+                    return Promise.resolve(0)
                 }else{
                     const year =  parseInt(this.selectedYear)
                     

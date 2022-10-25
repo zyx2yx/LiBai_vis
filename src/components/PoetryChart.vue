@@ -65,7 +65,8 @@ export default {
     },
     methods:{
         changeYear(curYear){
-            this.selectedYear = curYear
+            if(curYear === '未知') this.selectedYear = 0
+            else this.selectedYear = parseInt(curYear)
         },
     }
 }
@@ -73,9 +74,9 @@ export default {
 
 <template>
     <div class="chart-wrapper">
-        <PoetryPieChart :yearPoetryNum="yearPoetryNum" @change-year="changeYear"/>
+        <PoetryPieChart :yearPoetryNum="yearPoetryNum" :selectedYear="selectedYear" @change-year="changeYear" />
         <ConnectionChart v-bind:selectedYear="selectedYear"/>
-        <PoetryLineChart :yearPoetryNum="yearPoetryNum" />
+        <PoetryLineChart :yearPoetryNum="yearPoetryNum" :selectedYear="selectedYear" @change-year="changeYear"/>
     </div>
 </template>
 
